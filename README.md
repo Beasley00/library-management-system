@@ -50,6 +50,15 @@ Person (Abstract Base Class)
 - Backup and restore functionality
 - Error handling for file operations
 
+## 📸 Screenshots
+
+### Main Menu
+![Main Menu](screenshots/main-menu.png)
+
+### Book Management
+![Book Management](screenshots/book-management.png)
+
+
 ## 🚀 Features
 
 ### 📖 Book Management
@@ -160,15 +169,6 @@ java LibraryManagementApp
 2. Set the `src` folder as the source directory
 3. Run the `LibraryManagementApp.java` file
 
-## 📸 Screenshots
-
-### Main Menu
-![Main Menu](screenshots/main-menu.png)
-
-### Book Management
-![Book Management](screenshots/book-management.png)
-
-*Additional screenshots coming soon: Book List Display, Library Statistics, Member Management, and Search Results*
 
 ## 🎮 How to Use
 
