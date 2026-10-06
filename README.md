@@ -4,8 +4,6 @@
 
 **Project Option:** Option C — Library Management System
 
-**Repository:** *\[Insert GitHub Repository Link Here\]*
-
 ## Part 1: Reading Reflection
 
 The author challenges the Silicon Valley narrative that artificial intelligence has solved coding. Using his experience as an early AI adopter and systems engineer, he makes a distinction between code generation and software engineering.
