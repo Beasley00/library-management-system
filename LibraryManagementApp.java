@@ -181,13 +181,16 @@ public class LibraryManagementApp {
     
     private static void issueReturnMenu() {
         clearScreen();
-        printCenteredBox("ISSUE/RETURN BOOKS", "🔄");
+        printCenteredBox("ISSUE/RETURN / RESERVATIONS", "🔄");
         System.out.println();
         printMenuBox(new String[]{
             "1. Issue Book to Member",
             "2. Return Book from Member",
             "3. View Member's Issued Books",
-            "4. Back to Main Menu"
+            "4. Reserve Book for Member",
+            "5. Cancel Book Reservation",
+            "6. View All Reservations",
+            "7. Back to Main Menu"
         }, "BOOK TRANSACTIONS");
         
         int choice = getIntInput("Enter your choice: ");
@@ -203,6 +206,15 @@ public class LibraryManagementApp {
                 viewMemberBooks();
                 break;
             case 4:
+                reserveBook();
+                break;
+            case 5:
+                cancelReservation();
+                break;
+            case 6:
+                viewReservations();
+                break;
+            case 7:
                 return;
             default:
                 displayErrorBox("Invalid choice!");
@@ -411,6 +423,25 @@ public class LibraryManagementApp {
         System.out.println("═══════════════════════════════════════");
     }
     
+    private static void reserveBook() {
+        System.out.println();
+        System.out.println("🔖 RESERVE BOOK");
+        System.out.println("════════════════");
+        String bookId = getStringInput("Enter Book ID: ");
+        String memberId = getStringInput("Enter Member ID: ");
+        library.reserveBook(bookId, memberId);
+    }
+    private static void cancelReservation() {
+        System.out.println();
+        System.out.println("❌ CANCEL RESERVATION");
+        System.out.println("═════════════════════");
+        String reservationId = getStringInput("Enter Reservation ID: ");
+        library.cancelReservation(reservationId);
+    }
+    private static void viewReservations() {
+        library.displayAllReservations();
+    }
+    
     // Detail View Methods
     private static void viewBookDetails() {
         String bookId = getStringInput("Enter Book ID: ");
@@ -599,8 +630,8 @@ public class LibraryManagementApp {
     }
     
     private static void printErrorBox(String message) {
-        int width = 50;
         String fullMessage = "❌ " + message;
+        int width = Math.max(50, fullMessage.length() + 4);
         
         System.out.println("┌" + "─".repeat(width - 2) + "┐");
         System.out.print("│ ");
@@ -627,16 +658,23 @@ public class LibraryManagementApp {
     }
     
     private static void printDataBox(String title, String[] data) {
-        int width = 70;
+        int maxWidth = Math.max(70, title.length() + 10);
+        for (String item : data) {
+            if (item != null && item.length() + 4 > maxWidth) {
+                maxWidth = item.length() + 4;
+            }
+        }
+        int width = maxWidth;
         
         System.out.println("╔" + "═".repeat(width - 2) + "╗");
         
         // Title
-        int titlePadding = (width - title.length() - 2) / 2;
+        int titlePadding = Math.max(0, (width - title.length() - 2) / 2);
         System.out.print("║");
         System.out.print(" ".repeat(titlePadding));
         System.out.print(title);
-        System.out.print(" ".repeat(width - 2 - titlePadding - title.length()));
+        int remainingTitlePadding = Math.max(0, width - 2 - titlePadding - title.length());
+        System.out.print(" ".repeat(remainingTitlePadding));
         System.out.println("║");
         
         System.out.println("╠" + "═".repeat(width - 2) + "╣");
@@ -645,7 +683,8 @@ public class LibraryManagementApp {
         for (String item : data) {
             System.out.print("║ ");
             System.out.print(item);
-            System.out.print(" ".repeat(width - item.length() - 3));
+            int itemPadding = Math.max(0, width - item.length() - 3);
+            System.out.print(" ".repeat(itemPadding));
             System.out.println("║");
         }
         

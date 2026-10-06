@@ -10,7 +10,7 @@ public class TestDemo {
     
     public static void main(String[] args) {
         System.out.println("╔══════════════════════════════════════════════════════════╗");
-        System.out.println("║            🏛️ LIBRARY MANAGEMENT SYSTEM 🏛️             ║");
+        System.out.println("║            🏛️ LIBRARY MANAGEMENT SYSTEM 🏛️              ║");
         System.out.println("╚══════════════════════════════════════════════════════════╝");
         System.out.println();
         
@@ -23,7 +23,7 @@ public class TestDemo {
         System.out.println("┌────────────────────────────────────────────────┐");
         System.out.println("│              MEMBER MANAGEMENT DEMO            │");
         System.out.println("├────────────────────────────────────────────────┤");
-        System.out.println("│ Demonstrating Option 2: Member Management     │");
+        System.out.println("│  Demonstrating Option 2: Member Management     │");
         System.out.println("└────────────────────────────────────────────────┘");
         System.out.println();
         

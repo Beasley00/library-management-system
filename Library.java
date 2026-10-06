@@ -6,12 +6,13 @@ import java.util.stream.Collectors;
 
 /**
  * Library class - Main business logic class
- * Manages books, members, and librarians with file persistence
+ * Manages books, members, librarians, and reservations with file persistence
  */
 public class Library {
     private List<Book> books;
     private List<Member> members;
     private List<Librarian> librarians;
+    private List<BookReservation> reservations;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     
     // Constructor
@@ -19,6 +20,7 @@ public class Library {
         this.books = new ArrayList<>();
         this.members = new ArrayList<>();
         this.librarians = new ArrayList<>();
+        this.reservations = new ArrayList<>();
         loadAllData();
     }
     
@@ -27,9 +29,11 @@ public class Library {
         books = FileHandler.loadBooks();
         members = FileHandler.loadMembers();
         librarians = FileHandler.loadLibrarians();
+        reservations = FileHandler.loadReservations();
         
         System.out.println("📚 Data loaded successfully!");
-        System.out.println("Books: " + books.size() + " | Members: " + members.size() + " | Librarians: " + librarians.size());
+        System.out.println("Books: " + books.size() + " | Members: " + members.size() + 
+                           " | Librarians: " + librarians.size() + " | Reservations: " + reservations.size());
     }
     
     // Save all data to files
@@ -38,6 +42,7 @@ public class Library {
         success &= FileHandler.saveBooks(books);
         success &= FileHandler.saveMembers(members);
         success &= FileHandler.saveLibrarians(librarians);
+        success &= FileHandler.saveReservations(reservations);
         
         if (success) {
             System.out.println("✅ All data saved successfully!");
@@ -162,6 +167,16 @@ public class Library {
         // Issue the book
         if (book.issueBook(memberId, issueDate.format(DATE_FORMAT), returnDate.format(DATE_FORMAT))) {
             member.addIssuedBook(bookId);
+
+            // If this member had an active reservation for this book, mark it fulfilled
+            for (BookReservation res : reservations) {
+                if (res.isActive() && res.getBookId().equals(bookId) && res.getMemberId().equals(memberId)) {
+                    res.fulfill();
+                    System.out.println("🔖 Reservation " + res.getReservationId() + " marked as FULFILLED.");
+                    break;
+                }
+            }
+
             saveAllData();
             
             System.out.println("✅ Book issued successfully!");
@@ -213,10 +228,133 @@ public class Library {
             System.out.println("📖 Book: " + book.getTitle());
             System.out.println("👤 Member: " + member.getName());
             System.out.println("📅 Return Date: " + LocalDate.now().format(DATE_FORMAT));
+
+            // Check if there are active reservations waiting for this book
+            List<BookReservation> waiting = getReservationsByBook(bookId).stream()
+                    .filter(BookReservation::isActive)
+                    .collect(Collectors.toList());
+            if (!waiting.isEmpty()) {
+                System.out.println("🔔 Note: This book has " + waiting.size() + " active hold/reservation(s) waiting!");
+                System.out.println("   Next in line: Member " + waiting.get(0).getMemberId() + 
+                                   " (Reservation: " + waiting.get(0).getReservationId() + ")");
+            }
+
             return true;
         }
         
         return false;
+    }
+
+    // Reservation Management Methods
+    public boolean reserveBook(String bookId, String memberId) {
+        Book book = findBookById(bookId);
+        Member member = findMemberById(memberId);
+
+        if (book == null) {
+            System.out.println("❌ Book not found with ID: " + bookId);
+            return false;
+        }
+
+        if (member == null) {
+            System.out.println("❌ Member not found with ID: " + memberId);
+            return false;
+        }
+
+        // Check if member already has an active reservation for this book
+        boolean alreadyReserved = reservations.stream()
+                .anyMatch(r -> r.isActive() && r.getBookId().equals(bookId) && r.getMemberId().equals(memberId));
+        if (alreadyReserved) {
+            System.out.println("❌ Member already has an active reservation for this book!");
+            return false;
+        }
+
+        // Check if member currently has the book issued
+        if (book.isIssued() && memberId.equals(book.getIssuedTo())) {
+            System.out.println("❌ Member already has this book currently checked out!");
+            return false;
+        }
+
+        String reservationId = "R" + String.format("%03d", reservations.size() + 1);
+        String today = LocalDate.now().format(DATE_FORMAT);
+
+        BookReservation reservation = new BookReservation(reservationId, bookId, memberId, today);
+        reservations.add(reservation);
+        saveAllData();
+
+        System.out.println("✅ Book reserved successfully!");
+        System.out.println("🔖 Reservation ID : " + reservationId);
+        System.out.println("📖 Book Title      : " + book.getTitle());
+        System.out.println("👤 Reserved For   : " + member.getName());
+        System.out.println("📅 Reservation Date: " + today);
+        if (book.isIssued()) {
+            System.out.println("ℹ️  Book is currently checked out to " + book.getIssuedTo() + 
+                               " (Due: " + book.getReturnDate() + "). Hold is queued.");
+        } else {
+            System.out.println("ℹ️  Book is available on shelf for pickup.");
+        }
+        return true;
+    }
+
+    public boolean cancelReservation(String reservationId) {
+        BookReservation res = reservations.stream()
+                .filter(r -> r.getReservationId().equalsIgnoreCase(reservationId))
+                .findFirst()
+                .orElse(null);
+
+        if (res == null) {
+            System.out.println("❌ Reservation not found with ID: " + reservationId);
+            return false;
+        }
+
+        if (!res.isActive()) {
+            System.out.println("❌ Reservation " + reservationId + " is not active (Status: " + res.getStatus() + ")");
+            return false;
+        }
+
+        res.cancel();
+        saveAllData();
+        System.out.println("✅ Reservation " + reservationId + " cancelled successfully.");
+        return true;
+    }
+
+    public List<BookReservation> getAllReservations() {
+        return new ArrayList<>(reservations);
+    }
+
+    public List<BookReservation> getActiveReservations() {
+        return reservations.stream()
+                .filter(BookReservation::isActive)
+                .collect(Collectors.toList());
+    }
+
+    public List<BookReservation> getReservationsByBook(String bookId) {
+        return reservations.stream()
+                .filter(r -> r.getBookId().equals(bookId))
+                .collect(Collectors.toList());
+    }
+
+    public List<BookReservation> getReservationsByMember(String memberId) {
+        return reservations.stream()
+                .filter(r -> r.getMemberId().equals(memberId))
+                .collect(Collectors.toList());
+    }
+
+    public void displayAllReservations() {
+        if (reservations.isEmpty()) {
+            System.out.println("🔖 No reservations recorded in the library.");
+            return;
+        }
+
+        System.out.println("\n═══════════════════════════════════════");
+        System.out.println("🔖 ALL BOOK RESERVATIONS");
+        System.out.println("═══════════════════════════════════════");
+        System.out.println("Total Reservations: " + reservations.size());
+        System.out.println("Active: " + getActiveReservations().size());
+        System.out.println("═══════════════════════════════════════");
+        for (BookReservation r : reservations) {
+            System.out.println(r);
+        }
+        System.out.println("═══════════════════════════════════════");
     }
     
     // Display Methods
@@ -267,6 +405,7 @@ public class Library {
         System.out.println("Issued Books: " + getIssuedBooks().size());
         System.out.println("Total Members: " + members.size());
         System.out.println("Total Librarians: " + librarians.size());
+        System.out.println("Total Reservations: " + reservations.size() + " (Active: " + getActiveReservations().size() + ")");
         
         // Books by category
         System.out.println("\n📚 Books by Category:");
@@ -290,6 +429,6 @@ public class Library {
     
     // Backup data
     public boolean backupData() {
-        return FileHandler.backupData(books, members, librarians);
+        return FileHandler.backupData(books, members, librarians, reservations);
     }
 }

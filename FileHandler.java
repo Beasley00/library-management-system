@@ -10,6 +10,7 @@ public class FileHandler {
     private static final String BOOKS_FILE = "data/books.txt";
     private static final String MEMBERS_FILE = "data/members.txt";
     private static final String LIBRARIANS_FILE = "data/librarians.txt";
+    private static final String RESERVATIONS_FILE = "data/reservations.txt";
     
     // Save books to file
     public static boolean saveBooks(List<Book> books) {
@@ -151,6 +152,53 @@ public class FileHandler {
         }
         return librarians;
     }
+
+    // Save reservations to file
+    public static boolean saveReservations(List<BookReservation> reservations) {
+        try {
+            createDataDirectory();
+            FileWriter writer = new FileWriter(RESERVATIONS_FILE);
+            BufferedWriter bufferedWriter = new BufferedWriter(writer);
+            
+            for (BookReservation res : reservations) {
+                bufferedWriter.write(res.toFileString());
+                bufferedWriter.newLine();
+            }
+            
+            bufferedWriter.close();
+            return true;
+        } catch (IOException e) {
+            System.err.println("Error saving reservations: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Load reservations from file
+    public static List<BookReservation> loadReservations() {
+        List<BookReservation> reservations = new ArrayList<>();
+        try {
+            File file = new File(RESERVATIONS_FILE);
+            if (!file.exists()) {
+                return reservations; // Return empty list if file doesn't exist
+            }
+            
+            FileReader reader = new FileReader(file);
+            BufferedReader bufferedReader = new BufferedReader(reader);
+            String line;
+            
+            while ((line = bufferedReader.readLine()) != null) {
+                BookReservation res = BookReservation.fromFileString(line);
+                if (res != null) {
+                    reservations.add(res);
+                }
+            }
+            
+            bufferedReader.close();
+        } catch (IOException e) {
+            System.err.println("Error loading reservations: " + e.getMessage());
+        }
+        return reservations;
+    }
     
     // Create data directory if it doesn't exist
     private static void createDataDirectory() {
@@ -162,6 +210,11 @@ public class FileHandler {
     
     // Backup all data
     public static boolean backupData(List<Book> books, List<Member> members, List<Librarian> librarians) {
+        return backupData(books, members, librarians, new ArrayList<>());
+    }
+
+    public static boolean backupData(List<Book> books, List<Member> members, 
+                                     List<Librarian> librarians, List<BookReservation> reservations) {
         try {
             String timestamp = String.valueOf(System.currentTimeMillis());
             String backupDir = "data/backup_" + timestamp;
@@ -194,6 +247,15 @@ public class FileHandler {
                 librariansBuffer.newLine();
             }
             librariansBuffer.close();
+
+            // Backup reservations
+            FileWriter resWriter = new FileWriter(backupDir + "/reservations_backup.txt");
+            BufferedWriter resBuffer = new BufferedWriter(resWriter);
+            for (BookReservation res : reservations) {
+                resBuffer.write(res.toFileString());
+                resBuffer.newLine();
+            }
+            resBuffer.close();
             
             System.out.println("✅ Data backup created successfully in: " + backupDir);
             return true;
